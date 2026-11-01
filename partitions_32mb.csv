@@ -1,0 +1,7 @@
+# 32MB Flash 分区表（仿 Waveshare 官方 Arduino "32M Flash (4.8MB APP/22MB FATFS)" 布局）
+# Name,   Type, SubType, Offset,   Size,    Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x4C0000,
+app1,     app,  ota_1,   0x4D0000, 0x4C0000,
+ffat,     data, fat,     0x990000, 0x1670000,
