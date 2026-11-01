@@ -59,17 +59,19 @@ node make_font_22.js              # 生成 22px 字体 → src/fonts/ziwei_font_
 
 > 也可直接使用仓库 Release 附带的预生成字体文件。
 
-### 3. 配置服务器地址
+### 3. 配置 WiFi 与服务器地址
 
-编辑 [src/app_config.h](src/app_config.h)：
+编辑 [src/app_config.h](src/app_config.h) 的默认值（首次烧录生效；烧录后可在设备"设置"页修改并保存到 NVS，重启保留）：
 
 ```c
-// 将占位符替换为你的服务器地址（不含 http://，注意 WiFi 名/密码已在文件内占位）
-#define WIFI_SSID   "YOUR_WIFI_SSID"
-#define WIFI_PASS   "YOUR_WIFI_PASSWORD"
-#define SERVER_HOST "192.168.1.100"
-#define SERVER_PORT 3000
+#define DEFAULT_WIFI_SSID   "YOUR_WIFI_SSID"        // 你的 WiFi 名
+#define DEFAULT_WIFI_PASS   "YOUR_WIFI_PASSWORD"    // WiFi 密码
+#define DEFAULT_SERVER_URL  "http://192.168.1.100:3000"  // 服务器根地址（完整 URL）
 ```
+
+- 服务器地址必须是完整 URL（含 `http://` 或 `https://` 与端口）
+- 公网部署填 `https://your-app.vercel.app`；局域网服务器填 `http://<服务器IP>:3000`
+- 请勿提交真实 WiFi 凭据；烧录后建议在设备"设置"页改掉占位默认值（NVS 保存，优先于此处默认）
 
 ### 4. 编译烧录
 
@@ -117,7 +119,9 @@ ziwei-watch/
 
 **文字显示为方块？** 中文字体未生成或生成参数不对（LVGL 8.4 必须 `no_compress: true`），重新按上文生成。
 
-**无法连接服务器？** 检查设备与服务器同一局域网，`app_config.h` 中 IP/端口正确，服务器已启动（3000 端口）。
+**无法连接服务器？** 区分两种情况：
+- 状态行显示 **"离线"**：WiFi 没连上，检查设置页 WiFi 名/密码
+- 显示 **"在线"** 但排盘提示 **"服务异常，请稍后再试"**：WiFi 通了但服务器不可达——检查"服务器地址"是否填对（公网域名或 `http://<IP>:3000`）、服务器是否已启动；若公网域名在你网络直连受限，换网络（如手机热点）测试
 
 ## License
 
