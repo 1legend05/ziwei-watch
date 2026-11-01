@@ -1376,22 +1376,57 @@ void ui_poll() {
     USBSerial.printf("[ui] chat resp %d\n", (int)g_reqResult.length());
     String resp = g_reqResult;
     if (resp.indexOf("\"ok\":true") >= 0) {
-      int t0 = resp.indexOf("\"reply\":\"");
-      String reply = "";
-      if (t0 >= 0) {
-        int t1 = t0 + 9;   // "reply":" 是 9 个字符（含起始引号），t0+9 才指向内容
-        int end = t1;
-        while (end < (int)resp.length()) {
-          if (resp[end] == '\\' && end + 1 < (int)resp.length()) { end += 2; continue; }
-          if (resp[end] == '"') break;
-          end++;
+      // ★ chat 通道自动排盘（2026-11-01）：无命盘时说出出生信息，服务器直接排盘解读并回带 summary
+      if (resp.indexOf("\"summary\":\"") >= 0) {
+        int t0 = resp.indexOf("\"reply\":\"");
+        String reply = "";
+        if (t0 >= 0) {
+          int t1 = t0 + 9;   // "reply":" 是 9 个字符（含起始引号），t0+9 才指向内容
+          int end = t1;
+          while (end < (int)resp.length()) {
+            if (resp[end] == '\\' && end + 1 < (int)resp.length()) { end += 2; continue; }
+            if (resp[end] == '"') break;
+            end++;
+          }
+          reply = resp.substring(t1, end);
+          reply.replace("\\n", "\n");
+          reply.replace("\\\"", "\"");
         }
-        reply = resp.substring(t1, end);
-        reply.replace("\\n", "\n");
-        reply.replace("\\\"", "\"");
+        // 命盘摘要：截到 birth 字段前（服务器 JSON 顺序 ok,reply,summary,birth）
+        int s0 = resp.indexOf("\"summary\":\"");
+        String summary = "";
+        if (s0 >= 0) {
+          int s1 = s0 + 11;
+          int s2 = resp.indexOf("\"birth\"", s1);
+          if (s2 < 0) s2 = resp.indexOf("\"reply\"", s1);   // 兼容字段顺序兜底
+          if (s2 > s1) summary = resp.substring(s1, s2);
+          summary.replace("\\n", "\n");
+          summary.replace("\\\"", "\"");
+        }
+        if (summary.length()) g_lastSummary = summary;
+        g_chatHasSummary = true;
+        g_chatHistoryJson = "[]";   // 新命盘：清空旧对话历史，避免跨盘上下文串扰
+        USBSerial.printf("[ui] chat->interpret summary %d chars\n", (int)summary.length());
+        showInterpretResult(reply.length() ? reply : "（AI 返回为空，请检查方舟模型配置）");
+        ui_showChatReset();
+      } else {
+        int t0 = resp.indexOf("\"reply\":\"");
+        String reply = "";
+        if (t0 >= 0) {
+          int t1 = t0 + 9;   // "reply":" 是 9 个字符（含起始引号），t0+9 才指向内容
+          int end = t1;
+          while (end < (int)resp.length()) {
+            if (resp[end] == '\\' && end + 1 < (int)resp.length()) { end += 2; continue; }
+            if (resp[end] == '"') break;
+            end++;
+          }
+          reply = resp.substring(t1, end);
+          reply.replace("\\n", "\n");
+          reply.replace("\\\"", "\"");
+        }
+        chatAppend("AI: ", reply.length() ? reply : "（无回复）");
+        chatHistoryAppend("assistant", reply.length() ? reply : "（无回复）");   // 回答入历史，下轮可结合
       }
-      chatAppend("AI: ", reply.length() ? reply : "（无回复）");
-      chatHistoryAppend("assistant", reply.length() ? reply : "（无回复）");   // 回答入历史，下轮可结合
     } else {
       int e0 = resp.indexOf("\"error\":\"");
       String err = e0 >= 0 ? resp.substring(e0 + 9, resp.indexOf("\"}", e0)) : resp;
